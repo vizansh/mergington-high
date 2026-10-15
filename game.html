@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signal Sprint</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #65727a;
+      --paper: #f5f1e8;
+      --panel: #fffdf8;
+      --orange: #e56b3f;
+      --yellow: #f5c84b;
+      --blue: #385e72;
+      --line: #ded6c8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      padding: 20px;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .shell { width: min(680px, 100%); }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow, .stats, button {
+      font-family: Arial, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--orange);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.6rem, 8vw, 4.8rem);
+      font-weight: 400;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+    }
+
+    .stats { display: flex; gap: 18px; color: var(--muted); font-size: 0.68rem; }
+    .stats strong { display: block; margin-top: 4px; color: var(--ink); font: 700 1.35rem Georgia, serif; letter-spacing: 0; }
+
+    .arena {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      min-height: 360px;
+      border: 1px solid var(--line);
+      background-color: var(--panel);
+      background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 40px 40px;
+      box-shadow: 10px 10px 0 #e8e0d2;
+    }
+
+    .arena::after {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(245, 200, 75, 0.17), transparent 24%), radial-gradient(circle at 80% 70%, rgba(56, 94, 114, 0.12), transparent 30%);
+      content: "";
+      pointer-events: none;
+    }
+
+    .player, .spark { position: absolute; z-index: 1; transform: translate(-50%, -50%); }
+
+    .player {
+      width: 30px;
+      height: 30px;
+      border: 5px solid var(--panel);
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 0 2px var(--blue), 0 5px 12px rgba(23, 33, 43, 0.2);
+    }
+
+    .spark {
+      width: 22px;
+      height: 22px;
+      background: var(--yellow);
+      box-shadow: 0 0 0 5px rgba(245, 200, 75, 0.2), 0 0 22px rgba(245, 200, 75, 0.8);
+      clip-path: polygon(50% 0, 63% 36%, 100% 50%, 63% 64%, 50% 100%, 37% 64%, 0 50%, 37% 36%);
+    }
+
+    .message {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      z-index: 2;
+      width: min(86%, 380px);
+      padding: 24px;
+      border: 1px solid var(--line);
+      background: rgba(255, 253, 248, 0.94);
+      text-align: center;
+      transform: translate(-50%, -50%);
+    }
+
+    .message h2 { margin: 0 0 8px; font-size: 1.7rem; font-weight: 400; }
+    .message p { margin: 0 0 18px; color: var(--muted); line-height: 1.45; }
+
+    button {
+      border: 0;
+      padding: 13px 18px;
+      color: var(--panel);
+      background: var(--orange);
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    button:hover { background: #c9532d; }
+    .controls { display: none; }
+    .hint { margin: 18px 0 0; color: var(--muted); font: 0.78rem/1.4 Arial, sans-serif; text-align: center; }
+
+    @media (max-width: 520px) {
+      body { padding: 16px; }
+      header { align-items: start; flex-direction: column; }
+      .arena { min-height: 320px; box-shadow: 6px 6px 0 #e8e0d2; }
+      .controls { display: flex; justify-content: center; margin-top: 18px; }
+      .controls button { min-width: 130px; }
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="eyebrow">Merlington After Hours</p>
+        <h1>Signal Sprint</h1>
+      </div>
+      <div class="stats" aria-live="polite">
+        <div>Score<strong id="score">0</strong></div>
+        <div>Time<strong id="time">30</strong></div>
+      </div>
+    </header>
+
+    <section class="arena" id="arena" aria-label="Game area">
+      <div class="player" id="player" hidden></div>
+      <div class="spark" id="spark" hidden></div>
+      <div class="message" id="message">
+        <h2>Catch the signal.</h2>
+        <p>Move with the arrow keys or WASD. Gather as many sparks as you can before the bell.</p>
+        <button id="startButton" type="button">Start game</button>
+      </div>
+    </section>
+    <div class="controls"><button id="touchButton" type="button">Hold to move</button></div>
+    <p class="hint">Use arrow keys or WASD to steer. The signal moves every time you catch it.</p>
+  </main>
+
+  <script>
+    const arena = document.querySelector("#arena");
+    const player = document.querySelector("#player");
+    const spark = document.querySelector("#spark");
+    const message = document.querySelector("#message");
+    const startButton = document.querySelector("#startButton");
+    const touchButton = document.querySelector("#touchButton");
+    const scoreLabel = document.querySelector("#score");
+    const timeLabel = document.querySelector("#time");
+
+    let score = 0;
+    let secondsLeft = 30;
+    let playerX = 50;
+    let playerY = 50;
+    let sparkX = 75;
+    let sparkY = 35;
+    let running = false;
+    let lastFrame = 0;
+    let timer;
+    const keys = new Set();
+
+    function place(element, x, y) {
+      element.style.left = `${x}%`;
+      element.style.top = `${y}%`;
+    }
+
+    function randomPosition() {
+      return { x: 8 + Math.random() * 84, y: 10 + Math.random() * 80 };
+    }
+
+    function moveSpark() {
+      const position = randomPosition();
+      sparkX = position.x;
+      sparkY = position.y;
+      place(spark, sparkX, sparkY);
+    }
+
+    function updateLabels() {
+      scoreLabel.textContent = score;
+      timeLabel.textContent = secondsLeft;
+    }
+
+    function endGame() {
+      running = false;
+      clearInterval(timer);
+      message.hidden = false;
+      message.querySelector("h2").textContent = `Final score: ${score}`;
+      message.querySelector("p").textContent = "The bell rang, but the signal will be back. Ready for another run?";
+      startButton.textContent = "Play again";
+      player.hidden = true;
+      spark.hidden = true;
+    }
+
+    function startGame() {
+      score = 0;
+      secondsLeft = 30;
+      playerX = 50;
+      playerY = 50;
+      running = true;
+      lastFrame = 0;
+      message.hidden = true;
+      player.hidden = false;
+      spark.hidden = false;
+      place(player, playerX, playerY);
+      moveSpark();
+      updateLabels();
+      clearInterval(timer);
+      timer = setInterval(() => {
+        secondsLeft -= 1;
+        updateLabels();
+        if (secondsLeft <= 0) endGame();
+      }, 1000);
+      requestAnimationFrame(gameLoop);
+    }
+
+    function gameLoop(timestamp) {
+      if (!running) return;
+      const elapsed = Math.min((timestamp - lastFrame) / 1000 || 0, 0.05);
+      lastFrame = timestamp;
+      const horizontal = (keys.has("arrowright") || keys.has("d") ? 1 : 0) - (keys.has("arrowleft") || keys.has("a") ? 1 : 0);
+      const vertical = (keys.has("arrowdown") || keys.has("s") ? 1 : 0) - (keys.has("arrowup") || keys.has("w") ? 1 : 0);
+      const distance = Math.hypot(horizontal, vertical) || 1;
+      playerX = Math.max(3, Math.min(97, playerX + (horizontal / distance) * elapsed * 34));
+      playerY = Math.max(4, Math.min(96, playerY + (vertical / distance) * elapsed * 34));
+      place(player, playerX, playerY);
+
+      if (Math.hypot(playerX - sparkX, playerY - sparkY) < 6) {
+        score += 1;
+        updateLabels();
+        moveSpark();
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(key)) {
+        event.preventDefault();
+        keys.add(key);
+      }
+    });
+
+    document.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+    startButton.addEventListener("click", startGame);
+
+    touchButton.addEventListener("pointerdown", () => keys.add("arrowright"));
+    touchButton.addEventListener("pointerup", () => keys.delete("arrowright"));
+    touchButton.addEventListener("pointerleave", () => keys.delete("arrowright"));
+  </script>
+</body>
+</html>
